@@ -3,16 +3,16 @@ import glob
 import numpy as np
 
 # Define image format and chessboard dimensions
-image_path_format = 'chessboard/rightsample/*.jpg'
-save_path = 'RightCameraInfo.npz'
-dims = (7, 7)
+image_path_format = 'images/calibration/leftsample/*.png'
+save_path = 'data/CameraInfoLeft.npz'
+chessboard_size = (7, 7)
 
 # Termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
 # Prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-obj_pts = np.zeros((dims[1]*dims[0], 3), np.float32)
-obj_pts[:, :2] = np.mgrid[0:dims[0], 0:dims[1]].T.reshape(-1, 2)
+obj_pts = np.zeros((chessboard_size[1]*chessboard_size[0], 3), np.float32)
+obj_pts[:, :2] = np.mgrid[0:chessboard_size[0], 0:chessboard_size[1]].T.reshape(-1, 2)
 
 # Arrays to store object points (3D) and image points (2D) from all the images.
 obj_points = []
@@ -26,7 +26,7 @@ for img_name in images:
     img_g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Find the chess board corners
-    ret, corners = cv2.findChessboardCorners(img_g, (dims[0], dims[1]), None)
+    ret, corners = cv2.findChessboardCorners(img_g, (chessboard_size[0], chessboard_size[1]), None)
 
     # If found, add object points, image points (after refining them)
     if ret:
@@ -37,9 +37,9 @@ for img_name in images:
         img_points.append(corners2)
 
         # Draw and display the corners
-        img = cv2.drawChessboardCorners(img, (dims[0], dims[1]), corners2, ret)
+        img = cv2.drawChessboardCorners(img, (chessboard_size[0], chessboard_size[1]), corners2, ret)
         cv2.imshow('img', img)
-        cv2.waitKey(1000)
+        cv2.waitKey(100)
 
 cv2.destroyAllWindows()
 
@@ -65,16 +65,18 @@ for i in range(len(obj_points)):
     error = cv2.norm(img_points[i], img_points2, cv2.NORM_L2) / len(img_points2)
     mean_error += error
 
-print('Total error: {:.2f}%'.format((100*mean_error) / len(obj_points)))
+print('Total Error: {:.4f}%'.format((100*mean_error) / len(obj_points)))
 
-# img = cv2.imread('chessboard/leftsample/frame1.jpg')
-# h,  w = img.shape[:2]
-# new_cam_matrix, roi = cv2.getOptimalNewCameraMatrix(cam_matrix, distortion_coeff, (w, h), 1, (w, h))
-#
-# # Un-distort original chessboard image
-# img_undistorted = cv2.undistort(img, cam_matrix, distortion_coeff, None, new_cam_matrix)
-#
-# # Crop the image and save the result
-# x, y, w, h = roi
-# img_undistorted = img_undistorted[y:y+h, x:x+w]
-# cv2.imwrite('result.jpg', img_undistorted)
+
+img = cv2.imread('images/calibration/leftsample/frame1.png')
+h,  w = img.shape[:2]
+
+new_cam_matrix, roi = cv2.getOptimalNewCameraMatrix(cam_matrix, distortion_coeff, (w, h), 1, (w, h))
+
+# undistort
+dst = cv2.undistort(img, cam_matrix, distortion_coeff, None, new_cam_matrix)
+
+# crop the image
+x, y, w, h = roi
+dst = dst[y:y+h, x:x+w]
+cv2.imwrite('undistorted_left.png', dst)
